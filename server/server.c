@@ -7,7 +7,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-#define LISTEN_PORT 20000
+#define LISTEN_PORT 8787
 #define BUFFER_SIZE 1024
 #define IP_SIZE 10 // my VM IP address is 10.0.0.214
 
