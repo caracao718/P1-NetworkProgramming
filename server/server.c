@@ -72,9 +72,7 @@ int main() {
         printf("server accepted the client...\n");
 
     // 6. Receive Data
-    // char buff[80];
     struct Config config;
-    // memset(&config, 0, sizeof(struct Config));
     // read the message from client and copy it in buffer
     int byte_received = recv(client_socket, &config, sizeof(struct Config), 0);
     if (byte_received < 0) {
@@ -86,7 +84,7 @@ int main() {
         printf("Received %d bytes\n", byte_received);
     }
     // print buffer which contains the client contents
-    printf("From client: %s\n", config.server_ip_address);
+    printf("Server address from client: %s\n", config.server_ip_address);
 
     // 7. Close the Connection
     printf("Now closing TCP pre-probing sockets\n");
