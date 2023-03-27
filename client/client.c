@@ -104,7 +104,6 @@ struct Config parseJson(char *json_string) {
     return config;
 };
 
-
 int main() {
     struct Config config = parseJson("../config.json");
     printf("Finished parsing json\n");
@@ -146,13 +145,13 @@ int main() {
 
 
     // 3. Send Data
-    char message[] = "Hello, server!";
-    int sent_bytes = send(client_socket, &message, strlen(message), 0);
+    // char message[] = "Hello, server!";
+    int sent_bytes = send(client_socket, &config, sizeof(struct Config), 0);
     if (sent_bytes < 0) {
         perror("send failed");
         abort();
     }
-    printf("Sent %d bytes to server: %s\n", sent_bytes, message);
+    printf("Sent %d bytes to server\n", sent_bytes);
 
     // 4. Close the Connection
     if (close(client_socket) < 0) {
