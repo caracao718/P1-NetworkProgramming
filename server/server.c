@@ -90,9 +90,10 @@ int main() {
         printf("Received %d bytes\n", byte_received);
     }
     // print buffer which contains the client contents
-    printf("From client: %s\t To client : ", buff);
+    printf("From client: %s\n", buff);
 
     // 7. Close the Connection
+    printf("Now closing TCP pre-probing sockets\n");
     if (close(server_socket) < 0) {
         perror("Close failed\n");
         return -1;
