@@ -4,7 +4,7 @@
     "destination_port_UDP": 20041,
     "destination_port_for_TCP_Head_SYN_x": 2001,
     "destination_port_for_TCP_Tail_SYN_y": 2002,
-    "port_num_for_TCP": 2000,
+    "port_num_for_TCP": 8787,
     "size_of_UDP_payload": 15,
     "inter_measurement_time": 15,
     "num_of_UDP_packets_in_UDP_train": 10,

@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define IP_SIZE 10 // my VM IP address is 10.0.0.130
 
@@ -41,7 +42,7 @@ struct Config parseJson(char *json_string) {
         printf("Error opening config file\n");
         exit(1);
     }
-    char temp[10];
+    char temp[100];
     fscanf(config_file, "%s", temp);
     
     fscanf(config_file, "%s", temp);
@@ -98,12 +99,12 @@ struct Config parseJson(char *json_string) {
 
     fclose(config_file);
     return config;
-
 };
 
 
 int main() {
     struct Config config = parseJson("../config.json");
+    printf("Finished parsing json\n");
 
     // slient socket/address is the socket at the client side
     int client_socket; // socket descriptors
@@ -121,7 +122,15 @@ int main() {
 
     // 2. Determine server address and port number
     sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = inet_addr(config.server_ip_address); // ?????
+    int result = inet_pton(AF_INET, "127.0.0.1", &sin.sin_addr);
+    if (result == 0) {
+        fprintf(stderr, "inet_pton error: invalid IP address format\n");
+        exit(EXIT_FAILURE);
+    } else if (result < 0) {
+        fprintf(stderr, "inet_pton error: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    // sin.sin_addr.s_addr = inet_addr("10.0.0.130"); // ????? config.server_ip_address
     unsigned short port = config.port_TCP; // get from config file
     sin.sin_port = htons(port);
 
