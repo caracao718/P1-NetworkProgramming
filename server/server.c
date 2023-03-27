@@ -99,5 +99,11 @@ int main() {
     } else {
         printf("Close successful\n");
     }
+    if (close(client_socket) < 0) {
+        perror("Close failed\n");
+        return -1;
+    } else {
+        printf("Close successful\n");
+    }
     return 0;
 }

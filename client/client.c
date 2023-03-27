@@ -47,9 +47,12 @@ struct Config parseJson(char *json_string) {
     
     fscanf(config_file, "%s", temp);
     int num_values = fscanf(config_file, "%s", server_ip_address);
+    for (int i = 0; i < strlen(server_ip_address) - 2; i++) {
+        server_ip_address[i] = server_ip_address[i + 1];
+    }
     printf("Server IP: %s\n", server_ip_address);
-    strncpy(config.server_ip_address, server_ip_address, sizeof(server_ip_address) + 2);
-    config.server_ip_address[sizeof(config.server_ip_address) + 2] = '\0';
+    strncpy(config.server_ip_address, server_ip_address, sizeof(server_ip_address));
+    config.server_ip_address[sizeof(config.server_ip_address)] = '\0';
     printf("Stored Server IP: %s\n", config.server_ip_address);
 
     fscanf(config_file, "%s", temp);
@@ -122,16 +125,15 @@ int main() {
 
     // 2. Determine server address and port number
     sin.sin_family = AF_INET;
-    int result = inet_pton(AF_INET, "127.0.0.1", &sin.sin_addr);
-    if (result == 0) {
+    int ip_valid = inet_pton(AF_INET, config.server_ip_address, &sin.sin_addr);
+    if (ip_valid == 0) {
         fprintf(stderr, "inet_pton error: invalid IP address format\n");
-        exit(EXIT_FAILURE);
-    } else if (result < 0) {
+        abort();
+    } else if (ip_valid < 0) {
         fprintf(stderr, "inet_pton error: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
+        abort();
     }
-    // sin.sin_addr.s_addr = inet_addr("10.0.0.130"); // ????? config.server_ip_address
-    unsigned short port = config.port_TCP; // get from config file
+    unsigned short port = config.port_TCP; 
     sin.sin_port = htons(port);
 
     // 3. Connect to the Server
