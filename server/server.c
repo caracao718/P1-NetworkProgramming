@@ -6,6 +6,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <errno.h>
 
 #define LISTEN_PORT 8787
 #define BUFFER_SIZE 1024
@@ -106,62 +108,123 @@ int main() {
     // PHASE 2: UDP probing
 
     // 1. create socket
-    server_socket = socket(AF_INET, SOCK_DGRAM, 0);
-    if (server_socket == -1) {
-        printf("socket creation failed...\n");
-        exit(0);
-    } else
-        printf("Socket successfully created..\n");
+    struct sockaddr_in udp_addr;
+    int udp_addr_len;
 
     // 2. Define the Server Address and Port Number
-    memset(&server_address, 0, sizeof(server_address));
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = INADDR_ANY;
-    server_address.sin_port = htons(config.dest_port_UDP);
+    memset(&udp_addr, 0, sizeof(udp_addr));
+    udp_addr.sin_family = AF_INET;
+    udp_addr.sin_addr.s_addr = INADDR_ANY;
+    udp_addr.sin_port = htons(config.dest_port_UDP);
 
-    // Reuse Port
-    int opt = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-        perror("couldn't reuse address");
-        abort();
-    }
-
-    // 3. Bind the Server Socket to the Address and Port Number. Bind newly created socket to given IP and verification
-    if (bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) < 0) {
-        perror("Bind failed\n");
-        abort();
-    } else {
-        printf("Bind successful\n");
-    }
 
     // 4. Receive Data
     char buffer[config.size_UDP_payload];
-    memset(buffer, 0, BUFFER_SIZE);
-    addr_len = sizeof(client_address);
-    byte_received = recvfrom(server_socket, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&client_address, &addr_len);
-    if (byte_received < 0) {
-        perror("Receive failed\n");
-        abort();
-    } else if (byte_received == 0) {
-        printf("Client disconnected\n");
-    } else {
-        printf("Received %d bytes\n", byte_received);
+    long zeros_duration_ms = 0;
+    long random_duration_ms = 0;
+    for (int i = 0; i < 2; i++) {
+        int udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
+        if (udp_socket == -1) {
+            printf("socket creation failed...\n");
+            exit(0);
+        } else
+            printf("Socket successfully created..\n");
+
+        // Reuse Port
+        int opt = 1;
+        if (setsockopt(udp_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
+            perror("couldn't reuse address");
+            abort();
+        }
+
+        // 3. Bind the Server Socket to the Address and Port Number. Bind newly created socket to given IP and verification
+        if (bind(udp_socket, (struct sockaddr *)&udp_addr, sizeof(udp_addr)) < 0) {
+            perror("Bind failed\n");
+            abort();
+        } else {
+            printf("Bind successful\n");
+        }
+
+        // Set a timeout of 5 seconds on the recvfrom function
+        int timeout = 10000; // 5 seconds in milliseconds
+        struct timeval tv;
+        tv.tv_sec = timeout / 1000;
+        tv.tv_usec = (timeout % 1000) * 1000;
+        if (setsockopt(udp_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof(tv)) < 0) {
+            perror("setsockopt failed");
+            exit(EXIT_FAILURE);
+        }
+
+
+        struct timeval start_time;
+        gettimeofday(&start_time, NULL);
+        while (1) {
+            struct timeval current_time;
+            gettimeofday(&current_time, NULL);
+            if (current_time.tv_sec - start_time.tv_sec >= config.inter_measurement_time_seconds) {
+                break;
+            }
+            memset(buffer, 0, BUFFER_SIZE);
+            printf("Set buffer to 0\n");
+            udp_addr_len = sizeof(udp_addr);
+            printf("udp_addr_len is %d\n", udp_addr_len);
+            // byte_received = recvfrom(udp_socket, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&udp_addr, &udp_addr_len);
+            while ((byte_received = recvfrom(udp_socket, buffer, BUFFER_SIZE, 0, (struct sockaddr *)&udp_addr, &udp_addr_len)) < 0) {
+                if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                    // printf("Timeout occurred\n");
+                    // break;
+                    continue;
+                } else {
+                    perror("recvfrom failed");
+                    abort();
+                }
+            }
+
+            printf("received %d bytes from client\n", byte_received);
+            if (byte_received < 0) {
+                perror("Receive failed\n");
+                abort();
+            } else if (byte_received == 0) {
+                printf("Client disconnected\n");
+                break;
+            } else {
+                printf("Received %d bytes\n", byte_received);
+            }
+
+            // print buffer which contains the client contents
+            printf("Printing out Client's message\n");
+            for (int i = 0; i < 2; i++) {
+                for (int j = 7; j >= 0; j--) {
+                    printf("%d", (buffer[i] >> j) & 1);
+                }
+            }
+        }
+        struct timeval end_time;
+        gettimeofday(&end_time, NULL);
+        if (i == 0)
+            zeros_duration_ms = (end_time.tv_sec - start_time.tv_sec) * 1000 + (end_time.tv_usec - start_time.tv_usec) / 1000;
+        else if (i == 1)
+            random_duration_ms = (end_time.tv_sec - start_time.tv_sec) * 1000 + (end_time.tv_usec - start_time.tv_usec) / 1000;
+
+        // 5. Close the Connection
+        printf("Now closing UDP probing sockets\n");
+        if (close(udp_socket) < 0) {
+            perror("Close failed\n");
+            return -1;
+        } else {
+            printf("Close successful\n");
+        }
     }
 
-    // print buffer which contains the client contents
-    printf("Printing out Client's message\n");
-    for (int i = 0; i < config.size_UDP_payload; i++) {
-        printf("%c", buffer[i]);
-    }
+    long delta_t = random_duration_ms - zeros_duration_ms;
+    printf("delta_t is %ld\n", delta_t);
 
-    // 5. Close the Connection
-    printf("Now closing UDP probing sockets\n");
-    if (close(server_socket) < 0) {
-        perror("Close failed\n");
-        return -1;
+    if (delta_t > 100) {
+        printf("Compression detected!");
     } else {
-        printf("Close successful\n");
+        printf("Compression not detected!");
     }
+    
 
 
     return 0;
