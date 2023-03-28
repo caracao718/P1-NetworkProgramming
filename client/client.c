@@ -48,7 +48,7 @@ struct Config parseJson(char *json_string) {
     fscanf(config_file, "%s", temp);
     
     fscanf(config_file, "%s", temp);
-    int num_values = fscanf(config_file, "%s", server_ip_address);
+    int server_values = fscanf(config_file, "%s", server_ip_address);
     for (int i = 0; i < strlen(server_ip_address); i++) {
         server_ip_address[i] = server_ip_address[i + 1];
         if (server_ip_address[i] == '"') {
@@ -62,7 +62,7 @@ struct Config parseJson(char *json_string) {
     printf("Stored Server IP: %s\n", config.server_ip_address);
 
     fscanf(config_file, "%s", temp);
-    int num_values = fscanf(config_file, "%s", client_ip_address);
+    int client_values = fscanf(config_file, "%s", client_ip_address);
     for (int i = 0; i < strlen(client_ip_address); i++) {
         client_ip_address[i] = client_ip_address[i + 1];
         if (client_ip_address[i] == '"') {
@@ -215,8 +215,11 @@ int main() {
     // 4. Send Data
     char udp_message[config.size_UDP_payload];
     short packet_id = 0;
-    memset(udp_message, 0, config.size_UDP_payload);
+    // memset(udp_message, 0, config.size_UDP_payload);
     memcpy(udp_message, &packet_id, sizeof(short));
+    for (int i = 2; i < config.size_UDP_payload; i++) {
+        udp_message[i] = 0x00;
+    }
     int udp_sent_bytes = sendto(udp_socket, &udp_message, config.size_UDP_payload, 0, (struct sockaddr *)&udp_sin, sizeof(udp_sin));
     if (udp_sent_bytes < 0) {
         perror("send failed");

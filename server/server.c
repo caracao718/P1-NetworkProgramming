@@ -149,7 +149,10 @@ int main() {
     }
 
     // print buffer which contains the client contents
-    printf("From client: %s\n", buffer);
+    printf("Printing out Client's message\n");
+    for (int i = 0; i < config.size_UDP_payload; i++) {
+        printf("%c", buffer[i]);
+    }
 
     // 5. Close the Connection
     printf("Now closing UDP probing sockets\n");
