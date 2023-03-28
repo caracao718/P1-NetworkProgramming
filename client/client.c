@@ -178,6 +178,8 @@ int main() {
     if (close(client_socket) < 0) {
         perror("close failed");
         return -1;
+    } else {
+        printf("Successfully cloased TCP connection\n");
     }
 
     // PHASE 2: Probing UDP
@@ -213,24 +215,48 @@ int main() {
     udp_sin.sin_port = htons(udp_port);
 
     // 4. Send Data
+
+    // send all 0
     char udp_message[config.size_UDP_payload];
-    short packet_id = 0;
-    // memset(udp_message, 0, config.size_UDP_payload);
-    memcpy(udp_message, &packet_id, sizeof(short));
-    for (int i = 2; i < config.size_UDP_payload; i++) {
-        udp_message[i] = 0x00;
+    int udp_sent_bytes = 0;
+    uint16_t packet_id = 0;
+    for (int i = 0; i < config.num_UDP_packets; i++) {
+        memcpy(udp_message, &packet_id, sizeof(packet_id));
+        for (int i = 2; i < config.size_UDP_payload; i++) {
+            udp_message[i] = 0x00;
+        }
+        udp_sent_bytes = sendto(udp_socket, &udp_message, config.size_UDP_payload, 0, (struct sockaddr *)&udp_sin, sizeof(udp_sin));
+        if (udp_sent_bytes < 0) {
+            perror("send failed");
+            abort();
+        }
+        printf("Sent %d bytes to server\n", udp_sent_bytes);
+        packet_id++;
     }
-    int udp_sent_bytes = sendto(udp_socket, &udp_message, config.size_UDP_payload, 0, (struct sockaddr *)&udp_sin, sizeof(udp_sin));
-    if (udp_sent_bytes < 0) {
-        perror("send failed");
-        abort();
+
+    // send random data
+    sleep(config.inter_measurement_time_seconds);
+    packet_id = 0;
+    for (int i = 0; i < config.num_UDP_packets; i++) {
+        memcpy(udp_message, &packet_id, sizeof(packet_id));
+        for (int i = 2; i < config.size_UDP_payload; i++) {
+            udp_message[i] = rand() % 256;
+        }
+        udp_sent_bytes = sendto(udp_socket, &udp_message, config.size_UDP_payload, 0, (struct sockaddr *)&udp_sin, sizeof(udp_sin));
+        if (udp_sent_bytes < 0) {
+            perror("send failed");
+            abort();
+        }
+        printf("Sent %d bytes to server\n", udp_sent_bytes);
+        packet_id++;
     }
-    printf("Sent %d bytes to server\n", udp_sent_bytes);
 
     // 4. Close the Connection
     if (close(udp_socket) < 0) {
         perror("close failed");
         return -1;
+    } else {
+        printf("Successfully closed udp_socket\n");
     }
 
     // PHASE 3: Post-Probing TCP
