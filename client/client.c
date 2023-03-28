@@ -217,10 +217,11 @@ int main() {
     // 4. Send Data
 
     // send all 0
-    char udp_message[config.size_UDP_payload];
+    
     int udp_sent_bytes = 0;
     uint16_t packet_id = 0;
-    for (int i = 0; i < config.num_UDP_packets; i++) {
+    for (int i = 0; i < config.num_UDP_packets; i++) { 
+        char udp_message[config.size_UDP_payload];
         memcpy(udp_message, &packet_id, sizeof(packet_id));
         for (int i = 2; i < config.size_UDP_payload; i++) {
             udp_message[i] = 0x00;
@@ -232,12 +233,14 @@ int main() {
         }
         printf("Sent %d bytes to server\n", udp_sent_bytes);
         packet_id++;
+        printf("Next packet ID: %d\n", packet_id);
     }
 
     // send random data
     sleep(config.inter_measurement_time_seconds);
     packet_id = 0;
-    for (int i = 0; i < config.num_UDP_packets; i++) {
+    for (int i = 0; i < config.num_UDP_packets; i++) { 
+        char udp_message[config.size_UDP_payload];
         memcpy(udp_message, &packet_id, sizeof(packet_id));
         for (int i = 2; i < config.size_UDP_payload; i++) {
             udp_message[i] = rand() % 256;
@@ -249,6 +252,7 @@ int main() {
         }
         printf("Sent %d bytes to server\n", udp_sent_bytes);
         packet_id++;
+        printf("Next packet ID: %d\n", packet_id);
     }
 
     // 4. Close the Connection
