@@ -292,7 +292,38 @@ int main() {
     } else {
         printf("Compression not detected!");
     }
+
+    // PHASE 3: TCP post-probing
+    // 1. Create a TCP socket
+    struct sockaddr_in post_tcp_addr;
+    int post_probing_tcp_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (post_probing_tcp_socket == -1) {
+        printf("TCP socket creation failed...\n");
+        exit(0);
+    } else
+        printf("TCP Socket successfully created..\n");
+    memset(&post_tcp_addr, 0, sizeof(post_tcp_addr));
     
+    // 2. Define the server address and port number
+    post_tcp_addr.sin_family = AF_INET;
+    post_tcp_addr.sin_addr.s_addr = INADDR_ANY;
+    post_tcp_addr.sin_port = htons(LISTEN_PORT);
+
+    // 3. Bind newly created socket to given IP and verification
+    if ((bind(post_probing_tcp_socket, (struct sockaddr *)&post_tcp_addr, sizeof(post_tcp_addr))) != 0) {
+        printf("TCP socket bind failed...\n");
+        exit(0);
+    } else
+        printf("TCP Socket successfully binded..\n");
+    
+    // 4. send out result
+    if (delta_t > 100) {
+        char message[] = 1;
+        send(post_probing_tcp_socket, &message, sizeof(message), 0);
+    } else {
+        char message[] = 0;
+        send(post_probing_tcp_socket, &message, sizeof(message), 0);
+    }
 
 
     return 0;

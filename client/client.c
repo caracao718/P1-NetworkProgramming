@@ -264,7 +264,77 @@ int main() {
     }
 
     // PHASE 3: Post-Probing TCP
+    // 1. Create the Socket
+    struct sockaddr_in post_probing_sin;
+    int post_probing_socket = socket(AF_INET, SOCK_STREAM, 0); // TCP
+    if (post_probing_socket == -1) {
+        perror("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    memset(&post_probing_sin, 0, sizeof (post_probing_sin)); // set all bytes to 0
 
+    // 2. Determine server address and port number
+    post_probing_sin.sin_family = AF_INET;
+    int post_probing_ip_valid = inet_pton(AF_INET, config.server_ip_address, &post_probing_sin.sin_addr);
+    if (post_probing_ip_valid == 0) {
+        fprintf(stderr, "inet_pton error: invalid IP address format\n");
+        abort();
+    } else if (post_probing_ip_valid < 0) {
+        fprintf(stderr, "inet_pton error: %s\n", strerror(errno));
+        abort();
+    }
+    unsigned short post_probing_port = config.port_TCP;
+    post_probing_sin.sin_port = htons(post_probing_port);
+
+    // 3. Connect to the Server
+    if (connect(post_probing_socket, (struct sockaddr *)&post_probing_sin, sizeof(post_probing_sin)) < 0) {
+        perror("Connection with the server failed...\n");
+        abort();
+    }
+    else
+        printf("Connected to the server..\n");
+    
+    // // 4. Bind
+    // if (bind(post_probing_socket, (struct sockaddr *)&post_probing_sin, sizeof(post_probing_sin)) < 0) {
+    //     perror("bind failed");
+    //     abort();
+    // } else {
+    //     printf("Successfully bound post_probing_socket\n");
+    // }
+
+    // // 5. Listen
+    // if (listen(post_probing_socket, 1) < 0) {
+    //     perror("listen failed");
+    //     abort();
+    // } else {
+    //     printf("Successfully listened on post_probing_socket\n");
+    // }
+
+    // Receive data
+    char post_probing_buffer[1];
+    int post_probing_byte_received = recv(post_probing_socket, &post_probing_buffer, 1, 0);
+    if (post_probing_byte_received < 0) {
+        perror("recv failed");
+        abort();
+    } else {
+        printf("Received %d bytes from server\n", post_probing_byte_received);
+    }
+
+    if (post_probing_buffer[0] == 0x01) {
+        printf("Compression Detected!\n");
+    } else {
+        printf("Compression Not Detected\n");
+    }
+
+    // 5. Close the Connection
+    if (close(post_probing_socket) < 0) {
+        perror("close failed");
+        return -1;
+    } else {
+        printf("Successfully closed post_probing_socket\n");
+    }
 
 
     return 0;
