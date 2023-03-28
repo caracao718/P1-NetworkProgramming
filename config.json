@@ -1,12 +1,13 @@
 {
     "server_ip": "10.0.0.130",
-    "source_port_UDP": 20042,
-    "destination_port_UDP": 20041,
+    "client_ip": "10.0.0.214",
+    "source_port_UDP": 9876,
+    "destination_port_UDP": 8765,
     "destination_port_for_TCP_Head_SYN_x": 2001,
     "destination_port_for_TCP_Tail_SYN_y": 2002,
     "port_num_for_TCP": 8787,
-    "size_of_UDP_payload": 15,
+    "size_of_UDP_payload": 1000,
     "inter_measurement_time": 15,
-    "num_of_UDP_packets_in_UDP_train": 10,
-    "TTL_for_UPD_packets": 100
+    "num_of_UDP_packets_in_UDP_train": 6000,
+    "TTL_for_UPD_packets": 255
 }

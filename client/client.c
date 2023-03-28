@@ -8,11 +8,12 @@
 #include <unistd.h>
 #include <errno.h>
 
-#define IP_SIZE 10 // my VM IP address is 10.0.0.130
+#define IP_SIZE 16
 
 
 struct Config {
     char server_ip_address[IP_SIZE]; 
+    char client_ip_address[IP_SIZE];
     int source_port_UDP;
     int dest_port_UDP;
     int dest_port_TCP_Head;
@@ -27,6 +28,7 @@ struct Config {
 struct Config parseJson(char *json_string) {
     struct Config config;
     char server_ip_address[IP_SIZE];
+    char client_ip_address[IP_SIZE];
     int source_port_UDP;
     int dest_port_UDP;
     int dest_port_TCP_Head;
@@ -47,13 +49,31 @@ struct Config parseJson(char *json_string) {
     
     fscanf(config_file, "%s", temp);
     int num_values = fscanf(config_file, "%s", server_ip_address);
-    for (int i = 0; i < strlen(server_ip_address) - 2; i++) {
+    for (int i = 0; i < strlen(server_ip_address); i++) {
         server_ip_address[i] = server_ip_address[i + 1];
+        if (server_ip_address[i] == '"') {
+            server_ip_address[i] = '\0';
+            break;
+        }
     }
     printf("Server IP: %s\n", server_ip_address);
     strncpy(config.server_ip_address, server_ip_address, sizeof(server_ip_address));
     config.server_ip_address[sizeof(config.server_ip_address)] = '\0';
     printf("Stored Server IP: %s\n", config.server_ip_address);
+
+    fscanf(config_file, "%s", temp);
+    int num_values = fscanf(config_file, "%s", client_ip_address);
+    for (int i = 0; i < strlen(client_ip_address); i++) {
+        client_ip_address[i] = client_ip_address[i + 1];
+        if (client_ip_address[i] == '"') {
+            client_ip_address[i] = '\0';
+            break;
+        }
+    }
+    printf("Client IP: %s\n", client_ip_address);
+    strncpy(config.client_ip_address, client_ip_address, sizeof(client_ip_address));
+    config.client_ip_address[sizeof(config.client_ip_address)] = '\0';
+    printf("Stored Client IP: %s\n", config.client_ip_address);
 
     fscanf(config_file, "%s", temp);
     fscanf(config_file, "%d,", &source_port_UDP);
@@ -107,6 +127,8 @@ struct Config parseJson(char *json_string) {
 int main() {
     struct Config config = parseJson("../config.json");
     printf("Finished parsing json\n");
+ 
+    // PHASE 1: Pre-Probing TCP
 
     // slient socket/address is the socket at the client side
     int client_socket; // socket descriptors
@@ -145,7 +167,6 @@ int main() {
 
 
     // 3. Send Data
-    // char message[] = "Hello, server!";
     int sent_bytes = send(client_socket, &config, sizeof(struct Config), 0);
     if (sent_bytes < 0) {
         perror("send failed");
@@ -158,5 +179,60 @@ int main() {
         perror("close failed");
         return -1;
     }
+
+    // PHASE 2: Probing UDP
+    // 1. Create the Socket
+    struct sockaddr_in udp_sin;
+    int udp_socket = socket(AF_INET, SOCK_DGRAM, 0); // UDP
+    if (udp_socket == -1) {
+        perror("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    memset (&udp_sin, 0, sizeof(udp_sin)); // set all bytes to 0
+    
+    // 2. set DF bit in IP header
+    int on = 1;
+    if (setsockopt(udp_socket, SOL_SOCKET, IP_MTU_DISCOVER, &on, sizeof(on)) < 0) {
+        perror("setsockopt failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // 3. Determine server address and port number
+    udp_sin.sin_family = AF_INET;
+    int udp_ip_valid = inet_pton(AF_INET, config.server_ip_address, &udp_sin.sin_addr);
+    if (udp_ip_valid == 0) {
+        fprintf(stderr, "inet_pton error: invalid IP address format\n");
+        abort();
+    } else if (udp_ip_valid < 0) {
+        fprintf(stderr, "inet_pton error: %s\n", strerror(errno));
+        abort();
+    }
+    unsigned short udp_port = config.dest_port_UDP;
+    udp_sin.sin_port = htons(udp_port);
+
+    // 4. Send Data
+    char udp_message[config.size_UDP_payload];
+    short packet_id = 0;
+    memset(udp_message, 0, config.size_UDP_payload);
+    memcpy(udp_message, &packet_id, sizeof(short));
+    int udp_sent_bytes = sendto(udp_socket, &udp_message, config.size_UDP_payload, 0, (struct sockaddr *)&udp_sin, sizeof(udp_sin));
+    if (udp_sent_bytes < 0) {
+        perror("send failed");
+        abort();
+    }
+    printf("Sent %d bytes to server\n", udp_sent_bytes);
+
+    // 4. Close the Connection
+    if (close(udp_socket) < 0) {
+        perror("close failed");
+        return -1;
+    }
+
+    // PHASE 3: Post-Probing TCP
+
+
+
     return 0;
 }
