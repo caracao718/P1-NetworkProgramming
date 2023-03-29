@@ -11,9 +11,9 @@
 #include <fcntl.h>
 
 
-#define LISTEN_PORT 8787
+
 #define BUFFER_SIZE 1024
-#define IP_SIZE 16 // my VM IP address is 10.0.0.214
+#define IP_SIZE 16 
 
 struct Config {
     char server_ip_address[IP_SIZE]; 
@@ -29,7 +29,15 @@ struct Config {
     int TTL_UDP;
 };
 
-int main() {
+int main(int argc, char *argv[]) {
+    // LISTEN PORT
+    if (argc < 2) {
+        printf("Usage: %s port_number\n", argv[0]);
+        exit(1);
+    }
+    int port = atoi(argv[1]);
+    printf("The port number is: %d\n", port);
+
     int pre_tcp_server_socket, pre_tcp_client_socket, pre_tcp_addr_len; 
     struct sockaddr_in pre_tcp_server_address, pre_tcp_client_address;
 
@@ -45,10 +53,17 @@ int main() {
     
     memset(&pre_tcp_server_address, 0, sizeof(pre_tcp_server_address));
 
+    // Reuse port
+    int enable = 1;
+    if (setsockopt(pre_tcp_server_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+        perror("setsockopt(SO_REUSEADDR) failed");
+        abort();
+    }
+
     // 2. Define the Server Address and Port Number
     pre_tcp_server_address.sin_family = AF_INET;
     pre_tcp_server_address.sin_addr.s_addr = INADDR_ANY; 
-    pre_tcp_server_address.sin_port = htons(LISTEN_PORT);
+    pre_tcp_server_address.sin_port = htons(port);
 
     // 3. Bind the Server Socket to the Address and Port Number. Bind newly created socket to given IP and verification
     if (bind(pre_tcp_server_socket, (struct sockaddr *)&pre_tcp_server_address, sizeof(pre_tcp_server_address)) < 0) {
@@ -288,12 +303,14 @@ int main() {
     printf("delta_t is %ld\n", delta_t);
 
     if (delta_t > 100) {
-        printf("Compression detected!");
+        printf("Compression detected!\n");
     } else {
-        printf("Compression not detected!");
+        printf("Compression not detected!\n");
     }
 
+
     // PHASE 3: TCP post-probing
+    printf("Start post-probing phase\n");
     // 1. Create a TCP socket
     struct sockaddr_in post_tcp_addr;
     int post_probing_tcp_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -303,26 +320,50 @@ int main() {
     } else
         printf("TCP Socket successfully created..\n");
     memset(&post_tcp_addr, 0, sizeof(post_tcp_addr));
+
+    // Reuse Port
+    if (setsockopt(post_probing_tcp_socket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+        perror("setsockopt(SO_REUSEADDR) failed");
+        abort();
+    }
     
     // 2. Define the server address and port number
     post_tcp_addr.sin_family = AF_INET;
-    post_tcp_addr.sin_addr.s_addr = INADDR_ANY;
-    post_tcp_addr.sin_port = htons(LISTEN_PORT);
+    post_tcp_addr.sin_addr.s_addr = inet_addr(config.server_ip_address);
+    post_tcp_addr.sin_port = htons(port);
+
 
     // 3. Bind newly created socket to given IP and verification
     if ((bind(post_probing_tcp_socket, (struct sockaddr *)&post_tcp_addr, sizeof(post_tcp_addr))) != 0) {
-        printf("TCP socket bind failed...\n");
-        exit(0);
+        perror("TCP socket bind failed...\n");
+        abort();
     } else
         printf("TCP Socket successfully binded..\n");
+
+    // 4. Listen for incoming connections
+    if ((listen(post_probing_tcp_socket, 1)) != 0) {
+        perror("Listen failed...\n");
+        abort();
+    } else
+        printf("Server listening..\n");
+
+    // 5. Accept the data packet from client and verification
+    int post_tcp_addr_len = sizeof(post_tcp_addr);
+    int post_probing_tcp_socket_client = accept(post_probing_tcp_socket, (struct sockaddr *)&post_tcp_addr, &post_tcp_addr_len);
+    if (post_probing_tcp_socket_client < 0) {
+        perror("server acccept failed...\n");
+        abort();
+    } else
+        printf("server acccept the client...\n");
     
     // 4. send out result
+    char message[1];
     if (delta_t > 100) {
-        char message[] = 1;
-        send(post_probing_tcp_socket, &message, sizeof(message), 0);
+        message[0] = '1';
+        int bytes = send(post_probing_tcp_socket, &message, sizeof(message), 0);
     } else {
-        char message[] = 0;
-        send(post_probing_tcp_socket, &message, sizeof(message), 0);
+        message[0] = '0';
+        int bytes = send(post_probing_tcp_socket, &message, sizeof(message), 0);
     }
 
 
