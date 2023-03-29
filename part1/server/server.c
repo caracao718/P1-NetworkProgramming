@@ -253,8 +253,8 @@ int main(int argc, char *argv[]) {
     flags = fcntl(random_udp_socket, F_GETFL, 0);
     fcntl(random_udp_socket, F_SETFL, flags | O_NONBLOCK);
 
-    sleep(5);
-    printf("Slept for 5 seconds between ZEROS and RANDOM\n");
+    sleep(2);
+    printf("Slept for 2 seconds between ZEROS and RANDOM\n");
 
     // Set up the timeout value
     struct timeval timeout_random;
