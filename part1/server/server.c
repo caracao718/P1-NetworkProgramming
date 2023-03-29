@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
     // 2. Define the Server Address and Port Number
     memset(&udp_addr, 0, sizeof(udp_addr));
     udp_addr.sin_family = AF_INET;
-    udp_addr.sin_addr.s_addr = INADDR_ANY;
+    udp_addr.sin_addr.s_addr = inet_addr(config.server_ip_address);
     udp_addr.sin_port = htons(config.dest_port_UDP);
 
     // Reuse Port
@@ -300,13 +300,6 @@ int main(int argc, char *argv[]) {
     }
 
     long delta_t = random_duration_ms - zeros_duration_ms;
-    printf("delta_t is %ld\n", delta_t);
-
-    if (delta_t > 100) {
-        printf("Compression detected!\n");
-    } else {
-        printf("Compression not detected!\n");
-    }
 
 
     // PHASE 3: TCP post-probing
