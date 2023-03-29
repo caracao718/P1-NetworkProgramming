@@ -11,7 +11,7 @@ To run Server:
 To run Client:
 1. cd into the client directory: cd client
 2. run: gcc client.c -o client
-2. run: ./client ../config.json
+3. run: ./client ../config.json
 
 ## Rubric 
 To my best understanding, I have completed all the requirments for this project.
@@ -33,5 +33,6 @@ To my best understanding, I have completed all the requirments for this project.
 
 7. UDP Packet Train: Source/Destination ports and IP addresses are set ~ DONE
 8. Error checking and handling ~ DONE
+9. .pcap file ~ DONE  (it's in the same directory as this README file)
 
 

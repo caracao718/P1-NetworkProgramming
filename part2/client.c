@@ -14,9 +14,9 @@
 
 #define IP_SIZE 16
 
-#define PACKET_SIZE 4096
+
 #define MAX_RETRIES 3
-#define TIMEOUT_SEC 1
+#define TIMEOUT_SEC 5
 
 
 struct tcphdr {
@@ -171,12 +171,16 @@ int main() {
 
     // Resolve the server IP address
     struct sockaddr_in server_addr;
-    if (inet_aton(config.server_ip_address, &server_addr.sin_addr) == 0)
-        error("Invalid server IP address");
+    // if (inet_aton(config.server_ip_address, &server_addr.sin_addr) == 0)
+    //     error("Invalid server IP address");
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(config.dest_port_UDP);
+    server_addr.sin_addr.s_addr = inet_addr(config.server_ip_address);
+
 
     // Create the socket
     int sock;
-    if ((sock = socket(AF_INET, SOCK_RAW, IPPROTO_RAW)) == -1)
+    if ((sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP)) == -1)
         error("Failed to create socket");
     
     // Set the socket options
@@ -231,11 +235,71 @@ int main() {
     syn_packet_y.tcp.urg_ptr = 0;
     syn_packet_y.tcp.check = checksum((unsigned short *)&syn_packet_y.ip, sizeof(struct iphdr) + sizeof(syn_packet_y.tcp));
 
-    // Send the SYN packets
+
+    // Create UDP socket
+    // 1. Create the Socket
+    struct sockaddr_in udp_sin;
+    int udp_socket = socket(AF_INET, SOCK_DGRAM, 0); // UDP
+    if (udp_socket == -1) {
+        perror("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+    memset (&udp_sin, 0, sizeof(udp_sin)); // set all bytes to 0
+
+    // set TTL value
+    if (setsockopt(sock, SOL_SOCKET, IP_TTL, &config.TTL_UDP, sizeof(config.TTL_UDP)) < 0) {
+        perror("Failed to set TTL value");
+        exit(1);
+    }
+    
+    // 2. set DF bit in IP header
+    int on = 1;
+    if (setsockopt(udp_socket, SOL_SOCKET, IP_MTU_DISCOVER, &on, sizeof(on)) < 0) {
+        perror("setsockopt failed");
+        exit(1);
+    }
+
+    // 3. Determine server address and port number
+    udp_sin.sin_family = AF_INET;
+    int udp_ip_valid = inet_pton(AF_INET, config.server_ip_address, &udp_sin.sin_addr);
+    if (udp_ip_valid == 0) {
+        fprintf(stderr, "inet_pton error: invalid IP address format\n");
+        abort();
+    } else if (udp_ip_valid < 0) {
+        fprintf(stderr, "inet_pton error: %s\n", strerror(errno));
+        abort();
+    }
+    unsigned short udp_port = config.dest_port_UDP;
+    udp_sin.sin_port = htons(udp_port);
+
+
+    // Send the packets
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
     if (sendto(sock, &syn_packet_x, sizeof(syn_packet_x), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
         error("Failed to send SYN packet to port x");
+    
+    // Send UDP packet
+    int udp_sent_bytes = 0;
+    uint16_t packet_id = 0;
+    for (int i = 0; i < config.num_UDP_packets; i++) {
+        char udp_message[config.size_UDP_payload];
+        memcpy(udp_message, &packet_id, sizeof(packet_id));
+        for (int i = 2; i < config.size_UDP_payload; i++) {
+            udp_message[i] = 0x00;
+        }
+        udp_sent_bytes = sendto(udp_socket, &udp_message, config.size_UDP_payload, 0, (struct sockaddr *)&udp_sin, sizeof(udp_sin));
+        if (udp_sent_bytes < 0) {
+            perror("send failed");
+            abort();
+        }
+        printf("Sent %d bytes to server\n", udp_sent_bytes);
+        packet_id++;
+        printf("Next packet ID: %d\n", packet_id);
+    }
+
     if (sendto(sock, &syn_packet_y, sizeof(syn_packet_y), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
         error("Failed to send SYN packet to port y");
 
@@ -278,7 +342,17 @@ int main() {
     }
 
     // Close the socket
-    close(sock);
+    if (close(sock) < 0) {
+        error("Failed to close socket");
+    } else {
+        printf("Closed socket\n");
+    }
+
+    if (close(udp_socket) < 0) {
+        error("Failed to close UDP socket");
+    } else {
+        printf("Closed UDP socket\n");
+    }
 
     return 0;
 

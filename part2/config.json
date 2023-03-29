@@ -4,7 +4,7 @@
     "source_port_UDP": 9876,
     "destination_port_UDP": 8765,
     "destination_port_for_TCP_Head_SYN_x": 9999,
-    "destination_port_for_TCP_Tail_SYN_y": 10000,
+    "destination_port_for_TCP_Tail_SYN_y": 49152,
     "port_num_for_TCP": 8787,
     "size_of_UDP_payload": 1000,
     "inter_measurement_time": 15,
