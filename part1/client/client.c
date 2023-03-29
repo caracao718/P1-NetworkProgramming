@@ -269,8 +269,8 @@ int main(int argc, char *argv[]) {
         printf("Successfully closed udp_socket\n");
     }
 
-    sleep(15);
-    printf("Slept 5 seconds between probing and post-probing\n");
+    sleep(20);
+    printf("Slept 20 seconds between probing and post-probing\n");
 
     // PHASE 3: Post-Probing TCP
     printf("Start post-probing phase\n");
