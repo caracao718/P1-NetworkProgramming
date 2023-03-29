@@ -39,7 +39,7 @@ struct Config parseJson(char *json_string) {
     int num_UDP_packets;
     int TTL_UDP;
 
-    FILE* config_file = fopen("../config.json", "r");
+    FILE* config_file = fopen(json_string, "r");
     if (!config_file) {
         printf("Error opening config file\n");
         exit(1);

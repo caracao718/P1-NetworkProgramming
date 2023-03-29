@@ -1,7 +1,8 @@
-# P1-NetworkProgramming
-End-to-End Detection of Network Compression
+# P1-NetworkProgramming PART 1
+Compression Detection Client/Server Application
 Developer's Name: Cara Cao
 
+## Instructions
 To run Server:
 1. cd into the server directory: cd server
 2. run: gcc server.c -o server
@@ -12,7 +13,8 @@ To run Client:
 2. run: gcc client.c -o client
 2. run: ./client ../config.json
 
-Rubric: To my best understanding, I have completed all the requirments for this project.
+## Rubric 
+To my best understanding, I have completed all the requirments for this project.
 1. Config File (enabling the feature and correct parsing) ~ DONE
 2. Pre/Post-Probing Phase TCP Connection ~ DONE
 3. UDP Packet Train: All packets have the fixed and correct size: implemented as in the config file ~ DONE
