@@ -124,8 +124,14 @@ struct Config parseJson(char *json_string) {
     return config;
 };
 
-int main() {
-    struct Config config = parseJson("../config.json");
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: ./client <config_file>\n");
+        exit(1);
+    }
+    char *str = argv[1];
+
+    struct Config config = parseJson(str);
     printf("Finished parsing json\n");
  
     // PHASE 1: Pre-Probing TCP
@@ -263,7 +269,11 @@ int main() {
         printf("Successfully closed udp_socket\n");
     }
 
+    sleep(15);
+    printf("Slept 5 seconds between probing and post-probing\n");
+
     // PHASE 3: Post-Probing TCP
+    printf("Start post-probing phase\n");
     // 1. Create the Socket
     struct sockaddr_in post_probing_sin;
     int post_probing_socket = socket(AF_INET, SOCK_STREAM, 0); // TCP
@@ -295,37 +305,19 @@ int main() {
     }
     else
         printf("Connected to the server..\n");
-    
-    // // 4. Bind
-    // if (bind(post_probing_socket, (struct sockaddr *)&post_probing_sin, sizeof(post_probing_sin)) < 0) {
-    //     perror("bind failed");
-    //     abort();
-    // } else {
-    //     printf("Successfully bound post_probing_socket\n");
-    // }
-
-    // // 5. Listen
-    // if (listen(post_probing_socket, 1) < 0) {
-    //     perror("listen failed");
-    //     abort();
-    // } else {
-    //     printf("Successfully listened on post_probing_socket\n");
-    // }
 
     // Receive data
     char post_probing_buffer[1];
-    int post_probing_byte_received = recv(post_probing_socket, &post_probing_buffer, 1, 0);
+    int post_probing_byte_received = recv(post_probing_socket, &post_probing_buffer, sizeof(post_probing_buffer), 0);
     if (post_probing_byte_received < 0) {
         perror("recv failed");
         abort();
-    } else {
-        printf("Received %d bytes from server\n", post_probing_byte_received);
-    }
+    } 
 
-    if (post_probing_buffer[0] == 0x01) {
+    if (post_probing_buffer[0] == '1') {
         printf("Compression Detected!\n");
     } else {
-        printf("Compression Not Detected\n");
+        printf("Compression Not Detected!\n");
     }
 
     // 5. Close the Connection
