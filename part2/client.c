@@ -80,7 +80,7 @@ struct Config parseJson(char *json_string) {
     int num_UDP_packets;
     int TTL_UDP;
 
-    FILE* config_file = fopen("./config.json", "r");
+    FILE* config_file = fopen(json_string, "r");
     if (!config_file) {
         printf("Error opening config file\n");
         exit(1);
@@ -165,8 +165,13 @@ struct Config parseJson(char *json_string) {
     return config;
 };
 
-int main() {
-    struct Config config = parseJson("../config.json");
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: ./client <config_file>\n");
+        exit(1);
+    }
+    char *str = argv[1];
+    struct Config config = parseJson(str);
     printf("Finished parsing json\n");
 
     // Resolve the server IP address

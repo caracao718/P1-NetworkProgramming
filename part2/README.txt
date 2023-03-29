@@ -4,7 +4,7 @@ Developer's Name: Cara Cao
 
 ## Instructions
 1. run: gcc client.c -o client
-2. run: sudo ./client ../config.json
+2. run: sudo ./client ./config.json
 
 ## Rubric
 1. TTL is set properly in UDP packet train ~ DONE
