@@ -7,7 +7,6 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-// #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
@@ -15,7 +14,7 @@
 #define IP_SIZE 16
 
 
-#define MAX_RETRIES 3
+#define MAX_RETRIES 4
 #define TIMEOUT_SEC 5
 
 
@@ -176,8 +175,6 @@ int main(int argc, char *argv[]) {
 
     // Resolve the server IP address
     struct sockaddr_in server_addr;
-    // if (inet_aton(config.server_ip_address, &server_addr.sin_addr) == 0)
-    //     error("Invalid server IP address");
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(config.dest_port_UDP);
     server_addr.sin_addr.s_addr = inet_addr(config.server_ip_address);
@@ -193,56 +190,105 @@ int main(int argc, char *argv[]) {
     if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &one, sizeof(one)) == -1)
         error("Failed to set socket option");
     
-    // Construct the SYN packet to port x
-    struct packet syn_packet_x;
-    memset(&syn_packet_x, 0, sizeof(syn_packet_x));
-    syn_packet_x.ip.version = 4;
-    syn_packet_x.ip.ihl = 5;
-    syn_packet_x.ip.tos = 0;
-    syn_packet_x.ip.tot_len = htons(sizeof(struct iphdr) + sizeof(syn_packet_x.tcp));
-    syn_packet_x.ip.id = htons(54321);
-    syn_packet_x.ip.frag_off = htons(16384);
-    syn_packet_x.ip.ttl = config.TTL_UDP;
-    syn_packet_x.ip.protocol = IPPROTO_TCP;
-    syn_packet_x.ip.saddr = inet_addr(config.client_ip_address);
-    syn_packet_x.ip.daddr = inet_addr(config.server_ip_address);
-    syn_packet_x.tcp.source = htons(1234);
-    syn_packet_x.tcp.dest = htons(config.dest_port_TCP_Head);
-    syn_packet_x.tcp.seq = htonl(1);
-    syn_packet_x.tcp.doff = 5;
-    syn_packet_x.tcp.syn = 1;
-    syn_packet_x.tcp.window = htons(5840);
-    syn_packet_x.tcp.check = 0;
-    syn_packet_x.tcp.urg_ptr = 0;
-    syn_packet_x.tcp.check = checksum((unsigned short *)&syn_packet_x.ip, sizeof(struct iphdr) + sizeof(syn_packet_x.tcp));
+    // Construct the SYN packet to port x for low entropy
+    struct packet low_syn_packet_x;
+    memset(&low_syn_packet_x, 0, sizeof(low_syn_packet_x));
+    low_syn_packet_x.ip.version = 4;
+    low_syn_packet_x.ip.ihl = 5;
+    low_syn_packet_x.ip.tos = 0;
+    low_syn_packet_x.ip.tot_len = htons(sizeof(struct iphdr) + sizeof(low_syn_packet_x.tcp));
+    low_syn_packet_x.ip.id = htons(54321);
+    low_syn_packet_x.ip.frag_off = htons(16384);
+    low_syn_packet_x.ip.ttl = config.TTL_UDP;
+    low_syn_packet_x.ip.protocol = IPPROTO_TCP;
+    low_syn_packet_x.ip.saddr = inet_addr(config.client_ip_address);
+    low_syn_packet_x.ip.daddr = inet_addr(config.server_ip_address);
+    low_syn_packet_x.tcp.source = htons(1234);
+    low_syn_packet_x.tcp.dest = htons(config.dest_port_TCP_Head);
+    low_syn_packet_x.tcp.seq = htonl(1);
+    low_syn_packet_x.tcp.doff = 5;
+    low_syn_packet_x.tcp.syn = 1;
+    low_syn_packet_x.tcp.window = htons(5840);
+    low_syn_packet_x.tcp.check = 0;
+    low_syn_packet_x.tcp.urg_ptr = 0;
+    low_syn_packet_x.tcp.check = checksum((unsigned short *)&low_syn_packet_x.ip, sizeof(struct iphdr) + sizeof(low_syn_packet_x.tcp));
 
 
-    // Construct the SYN packet to port y
-    struct packet syn_packet_y;
-    memset(&syn_packet_y, 0, sizeof(syn_packet_y));
-    syn_packet_y.ip.version = 4;
-    syn_packet_y.ip.ihl = 5;
-    syn_packet_y.ip.tos = 0;
-    syn_packet_y.ip.tot_len = htons(sizeof(struct iphdr) + sizeof(syn_packet_y.tcp));
-    syn_packet_y.ip.id = htons(54321);
-    syn_packet_y.ip.frag_off = htons(16384);
-    syn_packet_y.ip.ttl = config.TTL_UDP;
-    syn_packet_y.ip.protocol = IPPROTO_TCP;
-    syn_packet_y.ip.saddr = inet_addr(config.client_ip_address);
-    syn_packet_y.ip.daddr = inet_addr(config.server_ip_address);
-    syn_packet_y.tcp.source = htons(1234);
-    syn_packet_y.tcp.dest = htons(config.dest_port_TCP_Tail);
-    syn_packet_y.tcp.seq = htonl(1);
-    syn_packet_y.tcp.doff = 5;
-    syn_packet_y.tcp.syn = 1;
-    syn_packet_y.tcp.window = htons(5840);
-    syn_packet_y.tcp.check = 0;
-    syn_packet_y.tcp.urg_ptr = 0;
-    syn_packet_y.tcp.check = checksum((unsigned short *)&syn_packet_y.ip, sizeof(struct iphdr) + sizeof(syn_packet_y.tcp));
+    // Construct the SYN packet to port y for low entropy
+    struct packet low_syn_packet_y;
+    memset(&low_syn_packet_y, 0, sizeof(low_syn_packet_y));
+    low_syn_packet_y.ip.version = 4;
+    low_syn_packet_y.ip.ihl = 5;
+    low_syn_packet_y.ip.tos = 0;
+    low_syn_packet_y.ip.tot_len = htons(sizeof(struct iphdr) + sizeof(low_syn_packet_y.tcp));
+    low_syn_packet_y.ip.id = htons(54321);
+    low_syn_packet_y.ip.frag_off = htons(16384);
+    low_syn_packet_y.ip.ttl = config.TTL_UDP;
+    low_syn_packet_y.ip.protocol = IPPROTO_TCP;
+    low_syn_packet_y.ip.saddr = inet_addr(config.client_ip_address);
+    low_syn_packet_y.ip.daddr = inet_addr(config.server_ip_address);
+    low_syn_packet_y.tcp.source = htons(1234);
+    low_syn_packet_y.tcp.dest = htons(config.dest_port_TCP_Tail);
+    low_syn_packet_y.tcp.seq = htonl(1);
+    low_syn_packet_y.tcp.doff = 5;
+    low_syn_packet_y.tcp.syn = 1;
+    low_syn_packet_y.tcp.window = htons(5840);
+    low_syn_packet_y.tcp.check = 0;
+    low_syn_packet_y.tcp.urg_ptr = 0;
+    low_syn_packet_y.tcp.check = checksum((unsigned short *)&low_syn_packet_y.ip, sizeof(struct iphdr) + sizeof(low_syn_packet_y.tcp));
+
+
+
+    // Construct the SYN packet to port x for high entropy
+    struct packet high_syn_packet_x;
+    memset(&high_syn_packet_x, 0, sizeof(high_syn_packet_x));
+    high_syn_packet_x.ip.version = 4;
+    high_syn_packet_x.ip.ihl = 5;
+    high_syn_packet_x.ip.tos = 0;
+    high_syn_packet_x.ip.tot_len = htons(sizeof(struct iphdr) + sizeof(high_syn_packet_x.tcp));
+    high_syn_packet_x.ip.id = htons(54321);
+    high_syn_packet_x.ip.frag_off = htons(16384);
+    high_syn_packet_x.ip.ttl = config.TTL_UDP;
+    high_syn_packet_x.ip.protocol = IPPROTO_TCP;
+    high_syn_packet_x.ip.saddr = inet_addr(config.client_ip_address);
+    high_syn_packet_x.ip.daddr = inet_addr(config.server_ip_address);
+    high_syn_packet_x.tcp.source = htons(1234);
+    high_syn_packet_x.tcp.dest = htons(config.dest_port_TCP_Head);
+    high_syn_packet_x.tcp.seq = htonl(1);
+    high_syn_packet_x.tcp.doff = 5;
+    high_syn_packet_x.tcp.syn = 1;
+    high_syn_packet_x.tcp.window = htons(5840);
+    high_syn_packet_x.tcp.check = 0;
+    high_syn_packet_x.tcp.urg_ptr = 0;
+    high_syn_packet_x.tcp.check = checksum((unsigned short *)&high_syn_packet_x.ip, sizeof(struct iphdr) + sizeof(high_syn_packet_x.tcp));
+
+    
+    // Construct the SYN packet to port y for high entropy
+    struct packet high_syn_packet_y;
+    memset(&high_syn_packet_y, 0, sizeof(high_syn_packet_y));
+    high_syn_packet_y.ip.version = 4;
+    high_syn_packet_y.ip.ihl = 5;
+    high_syn_packet_y.ip.tos = 0;
+    high_syn_packet_y.ip.tot_len = htons(sizeof(struct iphdr) + sizeof(high_syn_packet_y.tcp));
+    high_syn_packet_y.ip.id = htons(54321);
+    high_syn_packet_y.ip.frag_off = htons(16384);
+    high_syn_packet_y.ip.ttl = config.TTL_UDP;
+    high_syn_packet_y.ip.protocol = IPPROTO_TCP;
+    high_syn_packet_y.ip.saddr = inet_addr(config.client_ip_address);
+    high_syn_packet_y.ip.daddr = inet_addr(config.server_ip_address);
+    high_syn_packet_y.tcp.source = htons(1234);
+    high_syn_packet_y.tcp.dest = htons(config.dest_port_TCP_Tail);
+    high_syn_packet_y.tcp.seq = htonl(1);
+    high_syn_packet_y.tcp.doff = 5;
+    high_syn_packet_y.tcp.syn = 1;
+    high_syn_packet_y.tcp.window = htons(5840);
+    high_syn_packet_y.tcp.check = 0;
+    high_syn_packet_y.tcp.urg_ptr = 0;
+    high_syn_packet_y.tcp.check = checksum((unsigned short *)&high_syn_packet_y.ip, sizeof(struct iphdr) + sizeof(high_syn_packet_y.tcp));
 
 
     // Create UDP socket
-    // 1. Create the Socket
+    // 1. Create the Socket for low entropy
     struct sockaddr_in udp_sin;
     int udp_socket = socket(AF_INET, SOCK_DGRAM, 0); // UDP
     if (udp_socket == -1) {
@@ -259,14 +305,14 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
     
-    // 2. set DF bit in IP header
+    // set DF bit in IP header
     int on = 1;
     if (setsockopt(udp_socket, SOL_SOCKET, IP_MTU_DISCOVER, &on, sizeof(on)) < 0) {
         perror("setsockopt failed");
         exit(1);
     }
 
-    // 3. Determine server address and port number
+    // Determine server address and port number
     udp_sin.sin_family = AF_INET;
     int udp_ip_valid = inet_pton(AF_INET, config.server_ip_address, &udp_sin.sin_addr);
     if (udp_ip_valid == 0) {
@@ -280,16 +326,54 @@ int main(int argc, char *argv[]) {
     udp_sin.sin_port = htons(udp_port);
 
 
-    // Send the packets
+    // 2. Create the Socket for high entropy
+    struct sockaddr_in udp_sin_high;
+    int udp_socket_high = socket(AF_INET, SOCK_DGRAM, 0); // UDP
+    if (udp_socket_high == -1) {
+        perror("socket creation failed...\n");
+        exit(0);
+    }
+    else
+        printf("Socket successfully created..\n");
+
+    // set TTL value
+    if (setsockopt(sock, SOL_SOCKET, IP_TTL, &config.TTL_UDP, sizeof(config.TTL_UDP)) < 0) {
+        perror("Failed to set TTL value");
+        exit(1);
+    }
+
+    // set DF bit in IP header
+    on = 1;
+    if (setsockopt(udp_socket_high, SOL_SOCKET, IP_MTU_DISCOVER, &on, sizeof(on)) < 0) {
+        perror("setsockopt failed");
+        exit(1);
+    }
+
+    // Determine server address and port number
+    udp_sin_high.sin_family = AF_INET;
+    int udp_ip_valid_high = inet_pton(AF_INET, config.server_ip_address, &udp_sin_high.sin_addr);
+    if (udp_ip_valid_high == 0) {
+        fprintf(stderr, "inet_pton error: invalid IP address format\n");
+        abort();
+    } else if (udp_ip_valid_high < 0) {
+        fprintf(stderr, "inet_pton error: %s\n", strerror(errno));
+        abort();
+    }
+    unsigned short udp_port_high = config.dest_port_UDP;
+    udp_sin_high.sin_port = htons(udp_port_high);
+
+
+
+    // Send the packets for low entropy
     struct timeval start_time;
     gettimeofday(&start_time, NULL);
-    if (sendto(sock, &syn_packet_x, sizeof(syn_packet_x), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+    if (sendto(sock, &low_syn_packet_x, sizeof(low_syn_packet_x), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
         error("Failed to send SYN packet to port x");
     
     // Send UDP packet
     int udp_sent_bytes = 0;
     uint16_t packet_id = 0;
-    for (int i = 0; i < config.num_UDP_packets; i++) {
+    for (int i = 0; i < config.num_UDP_packets; i++) { 
         char udp_message[config.size_UDP_payload];
         memcpy(udp_message, &packet_id, sizeof(packet_id));
         for (int i = 2; i < config.size_UDP_payload; i++) {
@@ -305,8 +389,38 @@ int main(int argc, char *argv[]) {
         printf("Next packet ID: %d\n", packet_id);
     }
 
-    if (sendto(sock, &syn_packet_y, sizeof(syn_packet_y), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+    if (sendto(sock, &low_syn_packet_y, sizeof(low_syn_packet_y), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
         error("Failed to send SYN packet to port y");
+
+
+    // Send the packets for high entropy
+    struct timeval start_time_high;
+    gettimeofday(&start_time_high, NULL);
+    if (sendto(sock, &high_syn_packet_x, sizeof(high_syn_packet_x), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+        error("Failed to send SYN packet to port x");
+    
+    // Send UDP packet
+    int udp_sent_bytes_high = 0;
+    uint16_t packet_id_high = 0;
+    for (int i = 0; i < config.num_UDP_packets; i++) { 
+        char udp_message_high[config.size_UDP_payload];
+        memcpy(udp_message_high, &packet_id_high, sizeof(packet_id_high));
+        for (int i = 2; i < config.size_UDP_payload; i++) {
+            udp_message_high[i] = rand() % 256;
+        }
+        udp_sent_bytes_high = sendto(udp_socket_high, &udp_message_high, config.size_UDP_payload, 0, (struct sockaddr *)&udp_sin_high, sizeof(udp_sin_high));
+        if (udp_sent_bytes_high < 0) {
+            perror("send failed");
+            abort();
+        }
+        printf("Sent %d bytes to server\n", udp_sent_bytes_high);
+        packet_id_high++;
+        printf("Next packet ID: %d\n", packet_id_high);
+    }
+
+    if (sendto(sock, &high_syn_packet_y, sizeof(high_syn_packet_y), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+        error("Failed to send SYN packet to port y");
+    
 
     // Wait for the RST packets
     struct timeval timeout = {TIMEOUT_SEC, 0};
@@ -314,7 +428,7 @@ int main(int argc, char *argv[]) {
     FD_ZERO(&fds);
     FD_SET(sock, &fds);
     int retries = 0;
-    struct timeval rst_time1, rst_time2;
+    struct timeval rst_time1_low, rst_time2_low, rst_time1_high, rst_time2_high;
     while (retries < MAX_RETRIES) {
         if (select(sock+1, &fds, NULL, NULL, &timeout) == 1) {
             struct packet rst_packet;
@@ -322,14 +436,22 @@ int main(int argc, char *argv[]) {
             ssize_t len = recv(sock, &rst_packet, sizeof(rst_packet), 0);
             if (len == -1)
                 error("Failed to receive packet");
-            if (len < sizeof(struct iphdr) + sizeof(syn_packet_x.tcp))
+            if (len < sizeof(struct iphdr) + sizeof(low_syn_packet_x.tcp))
                 continue;
             if (rst_packet.tcp.rst && rst_packet.tcp.source == htons(config.dest_port_TCP_Head)) {
-                gettimeofday(&rst_time1, NULL);
+                if (retries < 2) {
+                    gettimeofday(&rst_time1_low, NULL);
+                } else {
+                    gettimeofday(&rst_time1_high, NULL);
+                }
                 retries++;
             }
             if (rst_packet.tcp.rst && rst_packet.tcp.source == htons(config.dest_port_TCP_Tail)) {
-                gettimeofday(&rst_time2, NULL);
+                if (retries < 2) {
+                    gettimeofday(&rst_time2_low, NULL);
+                } else {
+                    gettimeofday(&rst_time2_high, NULL);
+                }
                 retries++;
             }
         } else {
@@ -340,8 +462,9 @@ int main(int argc, char *argv[]) {
 
     // Calculate the difference between the RST packet arrival times
     if (retries < MAX_RETRIES) {
-        long time_diff_us = (rst_time2.tv_sec - rst_time1.tv_sec) * 1000000 + (rst_time2.tv_usec - rst_time1.tv_usec);
-        printf("Detected network compression (RST time difference: %ld microseconds)\n", time_diff_us);
+        long time_diff_us_low = (rst_time2_low.tv_sec - rst_time1_low.tv_sec) * 1000000 + (rst_time2_low.tv_usec - rst_time1_low.tv_usec);
+        long time_diff_us_high = (rst_time2_high.tv_sec - rst_time1_high.tv_sec) * 1000000 + (rst_time2_high.tv_usec - rst_time1_high.tv_usec);
+        printf("Detected network compression (RST time difference: %ld microseconds)\n", time_diff_us_high - time_diff_us_low);
     } else {
         printf("Failed to detect due to insufficient information\n");
     }
@@ -354,9 +477,15 @@ int main(int argc, char *argv[]) {
     }
 
     if (close(udp_socket) < 0) {
-        error("Failed to close UDP socket");
+        error("Failed to close UDP Low socket");
     } else {
-        printf("Closed UDP socket\n");
+        printf("Closed UDP Low socket\n");
+    }
+
+    if (close(udp_socket_high) < 0) {
+        error("Failed to close UDP High socket");
+    } else {
+        printf("Closed UDP High socket\n");
     }
 
     return 0;
